@@ -1,9 +1,11 @@
-import requests
 import logging
+import requests
 
+#URL de la API de metricas
 metrics_report_api = 'https://prevebsabackend.azurewebsites.net/api/RequestBlocks'
 
 def metricas(id, peticion, status_code, blocked):
+    #Creamos el json con la informacion de la metrica
     json = {
         "UserId": id,
         "RequestType": peticion,
@@ -11,6 +13,7 @@ def metricas(id, peticion, status_code, blocked):
         "Blocked": blocked
     }
 
+    #Enviamos metricas a la URL de la API
     send_metrics(json)
 
 def send_metrics(message_body):
