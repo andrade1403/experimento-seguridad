@@ -3,6 +3,8 @@ from flask import request
 from datetime import datetime
 from flask_restful import Resource
 from modelos import db, Venta, VentasSchema, EstadoVenta
+from flask_jwt_extended import jwt_required, create_access_token, get_jwt
+from .authHelper import roles_required
 
 venta_schema = VentasSchema()
 is_available = True 
@@ -44,10 +46,14 @@ class VistaVenta(Resource):
         return '', 204
 
 class VistaVentas(Resource):
+    @jwt_required()
+    @roles_required([1,2], 'GET')
     def get(self):
         ventas = Venta.query.all()
         return [venta_schema.dump(venta) for venta in ventas]
     
+    @jwt_required()
+    @roles_required([2], 'POST')
     def post(self):
 
         fecha_pedido = datetime.strptime(request.json['fecha_pedido'], '%d/%m/%Y')

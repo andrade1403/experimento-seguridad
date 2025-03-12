@@ -1,28 +1,26 @@
 from flask import Flask, request, jsonify
-import requests
+from flask_jwt_extended import JWTManager, create_access_token
+from API.user import User
+from roles.rol import Rol
+from helper.tokenHelper import TokenHelper
 
-#Creamos app
 app = Flask(__name__)
 
-#Ponemos rutas de microservicios
-microservicios = {'ventas': 'http://localhost:5001'}
+app.config["JWT_SECRET_KEY"] = "supersecretkey"
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600
 
-#Funcion para mandar solicitud a microservicio
-def envioSolicitud(microservicio, ruta):
+jwt = JWTManager(app)
 
-    #Traemos el microservicio por parametro
-    url = microservicios[microservicio] + ruta
+usuarios = [User('usuario1', 'pass1', Rol.DIRECTOR), User('usuario2', 'pass2', Rol.OPERARIO)]
 
-    #Tipo de peticion
-    peticion = request.method
+@app.route('/login', methods=['POST'])
+def autorizacion():
+    usuarioName = request.json.get('nombre')
+    contrasenia = request.json.get('contrasenia')
 
-    #Enviamos solicitud
-    response = requests.request(peticion, url, json = request.json, headers = request.headers)
-
-    return jsonify(response.json()), response.status_code
-
-#Rutas de los microservicios
-@app.route('/ventas', methods = ['GET', 'POST'])
-def ventas():
-    return envioSolicitud('ventas', '/ventas')
-
+    for usuario in usuarios:
+        if usuario.nombre == usuarioName and usuario.contrasenia == contrasenia:
+            token = create_access_token(identity = usuario.nombre, additional_claims={'rol': int(usuario.rol.value)})
+            return jsonify({'token': token}), 200
+    
+    return jsonify({'mensaje': 'Usuario o contraseña incorrectos'}), 401
