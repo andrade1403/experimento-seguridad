@@ -6,6 +6,6 @@ from roles.rol import Rol
 class TokenHelper(Resource):
     @staticmethod
     def createToken(usuario):
-        rol = usuario.rol
-        access_token = create_access_token(identity = usuario.nombre, additional_claims = {'rol': rol})
+        rol = usuario.rol.value
+        access_token = create_access_token(identity = usuario.nombre, additional_claims = {'rol': int(rol)})
         return access_token

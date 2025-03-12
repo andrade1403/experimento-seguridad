@@ -20,7 +20,7 @@ def autorizacion():
 
     for usuario in usuarios:
         if usuario.nombre == usuarioName and usuario.contrasenia == contrasenia:
-            token = create_access_token(identity = usuario.nombre, additional_claims={'rol': int(usuario.rol.value)})
+            token = TokenHelper.createToken(usuario)
             return jsonify({'token': token}), 200
     
     return jsonify({'mensaje': 'Usuario o contraseña incorrectos'}), 401
