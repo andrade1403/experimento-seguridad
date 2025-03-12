@@ -17,8 +17,20 @@ jwt = JWTManager(app)
 #Creamos dos usuarios para simular la base de datos
 usuarios = [User('usuario1', 'pass1', Rol.DIRECTOR), User('usuario2', 'pass2', Rol.OPERARIO)]
 
+#Bloqueamos el acceso a las rutas sin token
+API_GATEWAY_KEY = "llavesecreta"
+
+@app.before_request
+def validar_api_gateway():
+    api_key = request.headers.get("X-API-KEY")
+    gateway_header = request.headers.get("X-GATEWAY")
+
+    #Solo acepta peticiones que vengan desde el API Gateway con la llave correcta
+    if api_key != API_GATEWAY_KEY or gateway_header != "API_GATEWAY":
+        return jsonify({"error": "Acceso no autorizado"}), 403
+
 #Ruta para el login
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods = ['POST'])
 def autorizacion():
     #Extraemos el nombre de usuario y la contraseña del request
     usuarioName = request.json.get('nombre')
