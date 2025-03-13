@@ -4,25 +4,9 @@ from rol import Rol
 from flask_jwt_extended import get_jwt
 from datetime import datetime, timedelta
 from flask import Flask, request, jsonify
-from modelos import db, RequestService, Usuario
 
 #Creamos app de flask
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dbpeticiones.sqlite3'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app_context = app.app_context()
-app_context.push()
-
-#Inicializamos la base de datos
-db.init_app(app)
-db.create_all()
-
-#Creamos los dos usuarios en base de datos
-usuario_1 = Usuario(nombre = 'usuario1', contrasenia = 'pass1', rol = Rol.DIRECTOR)
-usuario_2 = Usuario(nombre = 'usuario2', contrasenia = 'pass2', rol = Rol.OPERARIO)
-db.session.add(usuario_1)
-db.session.add(usuario_2)
-db.session.commit()
 
 #Ponemos rutas de microservicios
 microservicios = {'login': 'http://localhost:5001',

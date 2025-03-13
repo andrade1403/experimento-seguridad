@@ -1,15 +1,26 @@
 from rol import Rol
+from tokenHelper import TokenHelper
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager
-from tokenHelper import TokenHelper
-from APIGateWay.modelos import Usuario
+from modelos import db, Usuario, RequestService
 
-#Creamos la aplicacion de flask para el autorizador
+#Creamos app de flask
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dbpeticiones.sqlite3'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app_context = app.app_context()
+app_context.push()
 
-#Configuramos la aplicacion para que utilice JWT
-app.config["JWT_SECRET_KEY"] = "supersecretkey"
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600
+#Inicializamos la base de datos
+db.init_app(app)
+db.create_all()
+
+#Creamos los dos usuarios en base de datos
+usuario_1 = Usuario(nombre = 'usuario1', contrasenia = 'pass1', rol = Rol.DIRECTOR)
+usuario_2 = Usuario(nombre = 'usuario2', contrasenia = 'pass2', rol = Rol.OPERARIO)
+db.session.add(usuario_1)
+db.session.add(usuario_2)
+db.session.commit()
 
 #Inicializamos el JWTManager
 jwt = JWTManager(app)
