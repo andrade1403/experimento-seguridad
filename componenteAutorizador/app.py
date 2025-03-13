@@ -1,8 +1,8 @@
-from roles.rol import Rol
-from usuarios.user import User
+from rol import Rol
 from flask import Flask, request, jsonify
 from flask_jwt_extended import JWTManager
-from helper.tokenHelper import TokenHelper
+from tokenHelper import TokenHelper
+from APIGateWay.modelos import Usuario
 
 #Creamos la aplicacion de flask para el autorizador
 app = Flask(__name__)
@@ -13,9 +13,6 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = 3600
 
 #Inicializamos el JWTManager
 jwt = JWTManager(app)
-
-#Creamos dos usuarios para simular la base de datos
-usuarios = [User('usuario1', 'pass1', Rol.DIRECTOR), User('usuario2', 'pass2', Rol.OPERARIO)]
 
 #Bloqueamos el acceso a las rutas sin token
 API_GATEWAY_KEY = "llavesecreta"
@@ -37,9 +34,10 @@ def autorizacion():
     contrasenia = request.json.get('contrasenia')
 
     #Buscamos el usuario en la lista de usuarios
-    for usuario in usuarios:
-        if usuario.nombre == usuarioName and usuario.contrasenia == contrasenia:
-            token = TokenHelper.createToken(usuario)
-            return jsonify({'token': token}), 200
+    usuario = Usuario.query.filter(Usuario.nombre == usuarioName).first()
+
+    if usuario.nombre == usuarioName and usuario.contrasenia == contrasenia:
+        token = TokenHelper.createToken(usuario)
+        return jsonify({'token': token}), 200
     
     return jsonify({'mensaje': 'Usuario o contraseña incorrectos'}), 401
