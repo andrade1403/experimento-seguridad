@@ -1,5 +1,6 @@
 from rol import Rol
 from flask_sqlalchemy import SQLAlchemy
+from marshmallow_sqlalchemy import SQLAlchemyAutoSchema
 
 #Creamos la base de datos
 db = SQLAlchemy()
@@ -15,3 +16,11 @@ class Usuario(db.Model):
     contrasenia = db.Column(db.String(128))
     rol = db.Column(db.Enum(Rol))
     estado = db.Column(db.Boolean, default = True)
+
+class RequestServiceSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = RequestService
+
+class UsuarioSchema(SQLAlchemyAutoSchema):
+    class Meta:
+        model = Usuario

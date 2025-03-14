@@ -1,12 +1,19 @@
 import logging
 import requests
-from rol import Rol
-from flask_jwt_extended import get_jwt
-from datetime import datetime, timedelta
+from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request, JWTManager
 from flask import Flask, request, jsonify
 
 #Creamos app de flask
 app = Flask(__name__)
+app.config["JWT_SECRET_KEY"] = "supersecretkey"
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.config["JWT_HEADER_NAME"] = "Authorization"
+app.config["JWT_HEADER_TYPE"] = "Bearer"
+app_context = app.app_context()
+app_context.push()
+
+#Inicializamos el JWTManager
+jwt = JWTManager(app)
 
 #Ponemos rutas de microservicios
 microservicios = {'login': 'http://localhost:5001',
@@ -14,6 +21,9 @@ microservicios = {'login': 'http://localhost:5001',
 
 #URL de la API de metricas
 metrics_report_api = 'https://prevebsabackend.azurewebsites.net/api/RequestBlocks'
+
+#Bloqueamos el acceso a las rutas sin token
+API_GATEWAY_KEY = "llavesecreta"
 
 def metricas(id, peticion, status_code, blocked):
     #Creamos el json con la informacion de la metrica
@@ -36,48 +46,55 @@ def send_metrics(message_body):
         logging.error(f"An error occurred while sending metrics: {e}")
 
 def conteoPeticiones(usuario):
-    #Definimos la hora hace dos minutos
-    hora_dos_minutos = datetime.now() - timedelta(minutes = 2)
+    #Añadimos la API Key en el header
+    headers = dict(request.headers)
+    headers["X-API-KEY"] = API_GATEWAY_KEY
+    headers["X-GATEWAY"] = "API_GATEWAY"
 
     #Contamos las peticiones del usuario
-    contador = RequestService.query.filter(RequestService.usuario == usuario.nombre, RequestService.fecha_peticion >= hora_dos_minutos).count()
-
-    return contador
+    contador = requests.request('GET', f'http://localhost:5001/peticiones/{usuario}', json = request.json, headers = headers).json()
+    print(contador)
+    return contador['contador']
 
 @app.before_request
 def bloqueoUsuario():
+    if request.path == "/login":
+        return
+    
+    #Añadimos la API Key en el header
+    headers = dict(request.headers)
+    headers["X-API-KEY"] = API_GATEWAY_KEY
+    headers["X-GATEWAY"] = "API_GATEWAY"
+
     #Definimos el umbral de peticiones
-    umbral = 10
+    umbral = 5
 
-    #Extraemos el usuario del token
-    userName = get_jwt().get('sub')
-
-    #Traemos el usuarios de la base de datos
-    usuario_db = Usuario.query.filter(Usuario.nombre == userName).first()
+    #Extraemos el nombre de usuario del token
+    verify_jwt_in_request()
+    jwt_data = get_jwt()
+    userName = jwt_data['sub']
 
     #Peticion del request
     peticion = request.method
 
+    #Definimos la URL de la API de usuarios
+    url = f'http://localhost:5001/usuarios/{userName}'
+
+    #Traemos el usuario de la base de datos
+    usuario_db = requests.request('GET', url, json = request.json, headers = headers).json()
+
     #Validamos si el usuario esta bloqueado
-    if usuario_db.estado is False:
+    if usuario_db['estado'] is False:
         return jsonify({'mensaje': 'Usuario bloqueado'}), 204
 
     #Validamos la cantidad de request del usuario
-    if conteoPeticiones(usuario_db) >= umbral:
-        usuario_db.estado = False
-        db.session.add(usuario_db)
-        db.session.commit()
-        metricas(usuario_db.id, peticion, 403, True)
+    if conteoPeticiones(usuario_db['nombre']) >= umbral:
+        usuario_actualizado = requests.request('PUT', url, json = request.json, headers = headers).json()
+        metricas(usuario_actualizado['nombre'], peticion, 403, True)
         return jsonify({'mensaje': 'Usuario bloqueado por exceso de peticiones'}), 403
         
     #Creamos los datos para la persistencia
-    request_service = RequestService(usuario = usuario_db.nombre)
-    db.session.add(request_service)
-    db.session.commit()
-    metricas(usuario_db.id, peticion, 200, False)
-
-#Bloqueamos el acceso a las rutas sin token
-API_GATEWAY_KEY = "llavesecreta"
+    request_service = requests.request('POST', 'http://localhost:5001/peticiones', json = request.json, headers = headers)
 
 #Funcion para mandar solicitud a microservicio
 def envioSolicitud(microservicio, ruta):
@@ -107,6 +124,7 @@ def envioSolicitud(microservicio, ruta):
  
 #Rutas a los microservicios de ventas
 @app.route('/ventas', methods = ['GET', 'POST'])
+@jwt_required()
 def ventas():
     return envioSolicitud('ventas', '/ventas')
 

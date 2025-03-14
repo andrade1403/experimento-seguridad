@@ -1,4 +1,3 @@
-import random
 from flask import request
 from datetime import datetime
 from flask_restful import Resource
