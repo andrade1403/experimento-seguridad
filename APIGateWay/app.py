@@ -24,9 +24,6 @@ microservicios = {'login': 'https://autorizador.mangomushroom-a6b9d05e.westus2.a
 #URL de la API de metricas
 metrics_report_api = 'https://prevebsabackend.azurewebsites.net/api/RequestBlocks'
 
-#Bloqueamos el acceso a las rutas sin token
-API_GATEWAY_KEY = "llavesecreta"
-
 def metricas(id, peticion, status_code, blocked):
     #Creamos el json con la informacion de la metrica
     json = {
@@ -54,7 +51,7 @@ def conteoPeticiones(usuario):
     # headers["X-GATEWAY"] = "API_GATEWAY"
 
     #Contamos las peticiones del usuario
-    contador = requests.request('GET', f'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/peticiones/{usuario}', json = request.json).json()
+    contador = requests.request('GET', f'{microservicios['login']}/peticiones/{usuario}', json = request.json).json()
 
     return contador['contador']
 
@@ -80,11 +77,11 @@ def bloqueoUsuario():
     peticion = request.method
 
     #Definimos la URL de la API de usuarios
-    url = f'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/usuarios/{userName}'
+    url = f'{microservicios['login']}/usuarios/{userName}'
 
     #Traemos el usuario de la base de datos
     usuario_db = requests.request('GET', url, json = request.json).json()
-
+    print(usuario_db)
     #Validamos si el usuario esta bloqueado
     if usuario_db['estado'] is False:
         return jsonify({'mensaje': 'Usuario bloqueado'}), 403
@@ -96,7 +93,7 @@ def bloqueoUsuario():
         return jsonify({'mensaje': 'Usuario bloqueado por exceso de peticiones'}), 403
         
     #Creamos los datos para la persistencia
-    request_service = requests.request('POST', 'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/peticiones', json = request.json)
+    request_service = requests.request('POST', f'{microservicios['login']}/peticiones', json = request.json)
 
 #Funcion para mandar solicitud a microservicio
 def envioSolicitud(microservicio, ruta):

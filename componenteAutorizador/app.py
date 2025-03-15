@@ -19,12 +19,16 @@ db.init_app(app)
 db.create_all()
 
 #Creamos los dos usuarios en base de datos
-usuario_1 = Usuario(nombre = 'usuarioExp1', contrasenia = 'pass1', rol = Rol.DIRECTOR)
-usuario_2 = Usuario(nombre = 'usuarioExp2', contrasenia = 'pass2', rol = Rol.OPERARIO)
-db.session.add(usuario_1)
-db.session.add(usuario_2)
-db.session.commit()
+consulta_1 = Usuario.query.filter(Usuario.nombre == 'usuarioExp1').first()
+consulta_2 = Usuario.query.filter(Usuario.nombre == 'usuarioExp2').first()
 
+if not (consulta_1 and consulta_2):
+    usuario_1 = Usuario(nombre = 'usuarioExp1', contrasenia = 'pass1', rol = Rol.DIRECTOR)
+    usuario_2 = Usuario(nombre = 'usuarioExp2', contrasenia = 'pass2', rol = Rol.OPERARIO)
+    db.session.add(usuario_1)
+    db.session.add(usuario_2)
+    db.session.commit()
+    
 #Inicializamos Schemas
 usuario_schema = UsuarioSchema()
 request_service_schema = RequestServiceSchema()
@@ -54,7 +58,15 @@ def autorizacion():
 @jwt_required()
 def usuarios():
     usuarios = Usuario.query.all()
-    return [usuario_schema.dump(usuario) for usuario in usuarios], 200
+
+    usuarios_aux = []
+    for usuario in usuarios:
+        hash_aux = dict()
+        hash_aux['nombre'] = usuario.nombre
+        hash_aux['estado'] = usuario.estado
+        usuarios_aux.append(hash_aux)
+
+    return jsonify([usuario_schema.dump(usuario) for usuario in usuarios_aux]), 200
 
 #Ruta para traer un usuario por nombre
 @app.route('/usuarios/<nombre>', methods=['GET'])
