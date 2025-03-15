@@ -51,7 +51,11 @@ def conteoPeticiones(usuario):
     # headers["X-GATEWAY"] = "API_GATEWAY"
 
     #Contamos las peticiones del usuario
-    contador = requests.request('GET', f'{microservicios['login']}/peticiones/{usuario}', json = request.json).json()
+    headers = {
+        "Authorization": request.headers.get("Authorization"),
+        "Content-Type": "application/json"
+    }
+    contador = requests.request('GET', f'{microservicios['login']}/peticiones/{usuario}', json = request.json, headers=headers).json()
 
     return contador['contador']
 
@@ -80,7 +84,14 @@ def bloqueoUsuario():
     url = f'{microservicios['login']}/usuarios/{userName}'
 
     #Traemos el usuario de la base de datos
-    usuario_db = requests.request('GET', url, json = request.json).json()
+    
+    
+    #usuario_db = requests.get(url,json=dict(), headers=request.headers).json()
+    headers = {
+        "Authorization": request.headers.get("Authorization"),
+        "Content-Type": "application/json"
+    }
+    usuario_db = requests.get(url, headers = headers).json()
     print(usuario_db)
     #Validamos si el usuario esta bloqueado
     if usuario_db['estado'] is False:
@@ -88,12 +99,13 @@ def bloqueoUsuario():
 
     #Validamos la cantidad de request del usuario
     if conteoPeticiones(usuario_db['nombre']) >= umbral:
-        usuario_actualizado = requests.request('PUT', url, json = request.json).json()
+        usuario_actualizado = requests.request('PUT', url, json = request.json, headers=headers).json()
         metricas(usuario_actualizado['nombre'], peticion, 403, True)
         return jsonify({'mensaje': 'Usuario bloqueado por exceso de peticiones'}), 403
         
     #Creamos los datos para la persistencia
-    request_service = requests.request('POST', f'{microservicios['login']}/peticiones', json = request.json)
+
+    request_service = requests.request('POST', f'{microservicios['login']}/peticiones', json = request.json, headers=headers)
 
 #Funcion para mandar solicitud a microservicio
 def envioSolicitud(microservicio, ruta):
@@ -114,7 +126,11 @@ def envioSolicitud(microservicio, ruta):
         peticion = request.method
 
         #Enviamos solicitud
-        response = requests.request(peticion, url, json = request.json)
+        headers = {
+        "Authorization": request.headers.get("Authorization"),
+        "Content-Type": "application/json"
+        }
+        response = requests.request(peticion, url, json = request.json, headers=headers)
         print(response.json())
         return jsonify(response.json()), response.status_code
 
