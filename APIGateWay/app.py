@@ -1,5 +1,6 @@
 import logging
 import requests
+from flask_cors import CORS
 from flask_jwt_extended import get_jwt, jwt_required, verify_jwt_in_request, JWTManager
 from flask import Flask, request, jsonify
 
@@ -9,6 +10,7 @@ app.config["JWT_SECRET_KEY"] = "supersecretkey"
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_HEADER_NAME"] = "Authorization"
 app.config["JWT_HEADER_TYPE"] = "Bearer"
+CORS(app)
 app_context = app.app_context()
 app_context.push()
 
@@ -61,10 +63,10 @@ def bloqueoUsuario():
     if request.path == "/login":
         return
     
-    #Añadimos la API Key en el header
-    headers = dict(request.headers)
-    headers["X-API-KEY"] = API_GATEWAY_KEY
-    headers["X-GATEWAY"] = "API_GATEWAY"
+    # #Añadimos la API Key en el header
+    # headers = dict(request.headers)
+    # headers["X-API-KEY"] = API_GATEWAY_KEY
+    # headers["X-GATEWAY"] = "API_GATEWAY"
 
     #Definimos el umbral de peticiones
     umbral = 8
@@ -81,7 +83,7 @@ def bloqueoUsuario():
     url = f'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/usuarios/{userName}'
 
     #Traemos el usuario de la base de datos
-    usuario_db = requests.request('GET', url, json = request.json, headers = headers).json()
+    usuario_db = requests.request('GET', url, json = request.json).json()
 
     #Validamos si el usuario esta bloqueado
     if usuario_db['estado'] is False:
@@ -89,12 +91,12 @@ def bloqueoUsuario():
 
     #Validamos la cantidad de request del usuario
     if conteoPeticiones(usuario_db['nombre']) >= umbral:
-        usuario_actualizado = requests.request('PUT', url, json = request.json, headers = headers).json()
+        usuario_actualizado = requests.request('PUT', url, json = request.json).json()
         metricas(usuario_actualizado['nombre'], peticion, 403, True)
         return jsonify({'mensaje': 'Usuario bloqueado por exceso de peticiones'}), 403
         
     #Creamos los datos para la persistencia
-    request_service = requests.request('POST', 'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/peticiones', json = request.json, headers = headers)
+    request_service = requests.request('POST', 'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/peticiones', json = request.json)
 
 #Funcion para mandar solicitud a microservicio
 def envioSolicitud(microservicio, ruta):
@@ -103,24 +105,24 @@ def envioSolicitud(microservicio, ruta):
         if microservicio not in microservicios:
             return jsonify({"error": "Microservicio no reconocido"}), 400
         
-        #Añadimos la API Key en el header
-        headers = dict(request.headers)
-        headers["X-API-KEY"] = API_GATEWAY_KEY
-        headers["X-GATEWAY"] = "API_GATEWAY"
+        # #Añadimos la API Key en el header
+        # headers = dict(request.headers)
+        # headers["X-API-KEY"] = API_GATEWAY_KEY
+        # headers["X-GATEWAY"] = "API_GATEWAY"
 
         #Traemos el microservicio por parametro
         url = f'{microservicios[microservicio]}{ruta}'
-        print(url)
 
         #Tipo de peticion
         peticion = request.method
 
         #Enviamos solicitud
-        response = requests.request(peticion, url, json = request.json, headers = headers)
-
+        response = requests.request(peticion, url, json = request.json)
+        print(response.json())
         return jsonify(response.json()), response.status_code
 
     except requests.exceptions.RequestException as e:
+        print(e)
         return jsonify({'mensaje': 'Error al conectar con el microservicio'}), 500
 
 #Rutas al micorservicio de inventarios

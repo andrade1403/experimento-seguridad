@@ -32,18 +32,18 @@ request_service_schema = RequestServiceSchema()
 #Inicializamos el JWTManager
 jwt = JWTManager(app)
 
-#Bloqueamos el acceso a las rutas sin token
-API_GATEWAY_KEY = "llavesecreta"
+# #Bloqueamos el acceso a las rutas sin token
+# API_GATEWAY_KEY = "llavesecreta"
 
-@app.before_request
-def validar_api_gateway():
-    if request.path != "/login":
-        api_key = request.headers.get("X-API-KEY")
-        gateway_header = request.headers.get("X-GATEWAY")
+# @app.before_request
+# def validar_api_gateway():
+#     if request.path != "/login":
+#         api_key = request.headers.get("X-API-KEY")
+#         gateway_header = request.headers.get("X-GATEWAY")
 
-        #Solo acepta peticiones que vengan desde el API Gateway con la llave correcta
-        if api_key != API_GATEWAY_KEY or gateway_header != "API_GATEWAY":
-            return jsonify({"error": "Acceso no autorizado"}), 403
+#         #Solo acepta peticiones que vengan desde el API Gateway con la llave correcta
+#         if api_key != API_GATEWAY_KEY or gateway_header != "API_GATEWAY":
+#             return jsonify({"error": "Acceso no autorizado"}), 403
 
 #Ruta para el login
 @app.route('/login', methods = ['POST'])
