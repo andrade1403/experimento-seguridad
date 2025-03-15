@@ -19,12 +19,10 @@ db.init_app(app)
 db.create_all()
 
 #Creamos los dos usuarios en base de datos
-usuario_1 = Usuario(nombre = 'usuario1', contrasenia = 'pass1', rol = Rol.DIRECTOR)
-usuario_2 = Usuario(nombre = 'usuario2', contrasenia = 'pass2', rol = Rol.OPERARIO)
-usuario_3 = Usuario(nombre = 'usuario3', contrasenia = 'pass3', rol = Rol.OPERARIO)
+usuario_1 = Usuario(nombre = 'usuarioExp1', contrasenia = 'pass1', rol = Rol.DIRECTOR)
+usuario_2 = Usuario(nombre = 'usuarioExp2', contrasenia = 'pass2', rol = Rol.OPERARIO)
 db.session.add(usuario_1)
 db.session.add(usuario_2)
-db.session.add(usuario_3)
 db.session.commit()
 
 #Inicializamos Schemas
@@ -57,9 +55,10 @@ def autorizacion():
     #Buscamos el usuario en la lista de usuarios
     usuario = Usuario.query.filter(Usuario.nombre == usuarioName).first()
 
-    if usuario.nombre == usuarioName and usuario.contrasenia == contrasenia:
-        token = TokenHelper.createToken(usuario)
-        return jsonify({'token': token}), 200
+    if usuario:
+        if usuario.nombre == usuarioName and usuario.contrasenia == contrasenia:
+            token = TokenHelper.createToken(usuario)
+            return jsonify({'token': token}), 200
     
     return jsonify({'mensaje': 'Usuario o contraseña incorrectos'}), 401
 

@@ -16,8 +16,8 @@ app_context.push()
 jwt = JWTManager(app)
 
 #Ponemos rutas de microservicios
-microservicios = {'login': 'http://localhost:5001',
-                  'ventas': 'http://localhost:5002'}
+microservicios = {'login': 'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io',
+                  'inventarios': 'https://ms-inventarios.bluemoss-dcbfacb8.westus2.azurecontainerapps.io'}
 
 #URL de la API de metricas
 metrics_report_api = 'https://prevebsabackend.azurewebsites.net/api/RequestBlocks'
@@ -52,8 +52,8 @@ def conteoPeticiones(usuario):
     headers["X-GATEWAY"] = "API_GATEWAY"
 
     #Contamos las peticiones del usuario
-    contador = requests.request('GET', f'http://localhost:5001/peticiones/{usuario}', json = request.json, headers = headers).json()
-    print(contador)
+    contador = requests.request('GET', f'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/peticiones/{usuario}', json = request.json, headers = headers).json()
+
     return contador['contador']
 
 @app.before_request
@@ -67,7 +67,7 @@ def bloqueoUsuario():
     headers["X-GATEWAY"] = "API_GATEWAY"
 
     #Definimos el umbral de peticiones
-    umbral = 5
+    umbral = 8
 
     #Extraemos el nombre de usuario del token
     verify_jwt_in_request()
@@ -78,14 +78,14 @@ def bloqueoUsuario():
     peticion = request.method
 
     #Definimos la URL de la API de usuarios
-    url = f'http://localhost:5001/usuarios/{userName}'
+    url = f'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/usuarios/{userName}'
 
     #Traemos el usuario de la base de datos
     usuario_db = requests.request('GET', url, json = request.json, headers = headers).json()
 
     #Validamos si el usuario esta bloqueado
     if usuario_db['estado'] is False:
-        return jsonify({'mensaje': 'Usuario bloqueado'}), 204
+        return jsonify({'mensaje': 'Usuario bloqueado'}), 403
 
     #Validamos la cantidad de request del usuario
     if conteoPeticiones(usuario_db['nombre']) >= umbral:
@@ -94,7 +94,7 @@ def bloqueoUsuario():
         return jsonify({'mensaje': 'Usuario bloqueado por exceso de peticiones'}), 403
         
     #Creamos los datos para la persistencia
-    request_service = requests.request('POST', 'http://localhost:5001/peticiones', json = request.json, headers = headers)
+    request_service = requests.request('POST', 'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/peticiones', json = request.json, headers = headers)
 
 #Funcion para mandar solicitud a microservicio
 def envioSolicitud(microservicio, ruta):
@@ -110,6 +110,7 @@ def envioSolicitud(microservicio, ruta):
 
         #Traemos el microservicio por parametro
         url = f'{microservicios[microservicio]}{ruta}'
+        print(url)
 
         #Tipo de peticion
         peticion = request.method
@@ -121,12 +122,22 @@ def envioSolicitud(microservicio, ruta):
 
     except requests.exceptions.RequestException as e:
         return jsonify({'mensaje': 'Error al conectar con el microservicio'}), 500
- 
-#Rutas a los microservicios de ventas
-@app.route('/ventas', methods = ['GET', 'POST'])
+
+#Rutas al micorservicio de inventarios
+@app.route('/inventarios', methods = ['GET'])
 @jwt_required()
-def ventas():
-    return envioSolicitud('ventas', '/ventas')
+def inventarios():
+    return envioSolicitud('inventarios', '/inventarios')
+
+@app.route('/entradaAleatoria', methods = ['POST'])
+@jwt_required()
+def entradaAleatoria():
+    return envioSolicitud('inventarios', '/entradaAleatoria')
+
+@app.route('/salidaAleatoria', methods = ['PUT'])
+@jwt_required()
+def salidaAleatoria():
+    return envioSolicitud('inventarios', '/salidaAleatoria')
 
 #Rutas al componente de autorizador
 @app.route('/login', methods = ['POST'])
