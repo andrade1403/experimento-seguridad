@@ -48,13 +48,13 @@ def send_metrics(message_body):
         logging.error(f"An error occurred while sending metrics: {e}")
 
 def conteoPeticiones(usuario):
-    #Añadimos la API Key en el header
-    headers = dict(request.headers)
-    headers["X-API-KEY"] = API_GATEWAY_KEY
-    headers["X-GATEWAY"] = "API_GATEWAY"
+    # #Añadimos la API Key en el header
+    # headers = dict(request.headers)
+    # headers["X-API-KEY"] = API_GATEWAY_KEY
+    # headers["X-GATEWAY"] = "API_GATEWAY"
 
     #Contamos las peticiones del usuario
-    contador = requests.request('GET', f'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/peticiones/{usuario}', json = request.json, headers = headers).json()
+    contador = requests.request('GET', f'https://autorizador.mangomushroom-a6b9d05e.westus2.azurecontainerapps.io/peticiones/{usuario}', json = request.json).json()
 
     return contador['contador']
 
