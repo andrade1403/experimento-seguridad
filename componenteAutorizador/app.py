@@ -53,6 +53,7 @@ def autorizacion():
     
     return jsonify({'mensaje': 'Usuario o contraseña incorrectos'}), 401
 
+
 #Ruta para llevar los usuarios de la base de datos
 @app.route('/usuarios', methods = ['GET', 'POST'])
 @jwt_required()
